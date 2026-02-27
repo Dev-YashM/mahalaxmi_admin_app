@@ -1,8 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:mahalaxmi_admin/features/widgetTree.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/theme/app_colors.dart';
 import '../widgets/hero.dart';
@@ -15,69 +12,49 @@ class LoginMobileScreen extends StatefulWidget {
 }
 
 class _LoginMobileScreenState extends State<LoginMobileScreen> {
-  final TextEditingController mobileController = TextEditingController();
-  final TextEditingController pinController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   bool isLoading = false;
 
-  final String baseUrl = "https://ecombackend-1-j6ov.onrender.com";
-
   @override
   void dispose() {
-    mobileController.dispose();
-    pinController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> verifyPin() async {
-    if (mobileController.text.length != 10 ||
-        pinController.text.length < 4) {
+  Future<void> verifyLogin() async {
+    if (usernameController.text.isEmpty ||
+        passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter valid Mobile & PIN")),
+        const SnackBar(content: Text("Enter Username & Password")),
       );
       return;
     }
 
     setState(() => isLoading = true);
 
-    try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/api/auth/verify-pin"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "mobileNumber": mobileController.text.trim(),
-          "pin": pinController.text.trim(), // backend expects otp field
-        }),
+    await Future.delayed(const Duration(seconds: 1));
+
+    setState(() => isLoading = false);
+
+    if (usernameController.text.trim() == "MLX_Admin" &&
+        passwordController.text.trim() == "130769") {
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const WidgetTree(
+            title: "Mahalaxmi Coolers",
+            mobileNumber: "Admin",
+          ),
+        ),
       );
 
-      setState(() => isLoading = false);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        String mobileNumber = data["mobileNumber"];
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString("mobileNumber", mobileNumber);
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => WidgetTree(
-              title: "Mahalaxmi Coolers",
-              mobileNumber: mobileNumber,
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid Mobile or PIN")),
-        );
-      }
-    } catch (e) {
-      setState(() => isLoading = false);
-
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Server Error")),
+        const SnackBar(content: Text("Invalid Username or Password")),
       );
     }
   }
@@ -91,13 +68,13 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          "Login",
+          "Admin Login",
           style: TextStyle(
             color: AppColors.primary,
             fontWeight: FontWeight.w600,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.primary),
+        iconTheme: const IconThemeData(color: AppColors.surface),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -109,7 +86,7 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
               const SizedBox(height: 10),
 
               const Text(
-                "Welcome back",
+                "Welcome Admin",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -120,7 +97,7 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
               const SizedBox(height: 6),
 
               const Text(
-                "Login using your mobile number and PIN",
+                "Login using your username and password",
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.black54,
@@ -129,16 +106,19 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
 
               const SizedBox(height: 40),
 
-              Center(child: SizedBox(height: 300,child: HeroWidget())),
+              const Center(
+                child: SizedBox(
+                  height: 300,
+                  child: HeroWidget(),
+                ),
+              ),
 
               const SizedBox(height: 40),
 
               TextField(
-                controller: mobileController,
-                keyboardType: TextInputType.number,
-                maxLength: 10,
+                controller: usernameController,
                 decoration: InputDecoration(
-                  labelText: "Mobile Number",
+                  labelText: "Username",
                   filled: true,
                   fillColor: AppColors.surface,
                   contentPadding: const EdgeInsets.symmetric(
@@ -159,12 +139,10 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
               const SizedBox(height: 20),
 
               TextField(
-                controller: pinController,
-                keyboardType: TextInputType.number,
+                controller: passwordController,
                 obscureText: true,
-                maxLength: 6,
                 decoration: InputDecoration(
-                  labelText: "Enter PIN",
+                  labelText: "Password",
                   filled: true,
                   fillColor: AppColors.surface,
                   contentPadding: const EdgeInsets.symmetric(
@@ -182,7 +160,7 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
               SizedBox(
                 width: double.infinity,
@@ -195,35 +173,12 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: isLoading ? null : verifyPin,
+                  onPressed: isLoading ? null : verifyLogin,
                   child: const Text(
                     "Login",
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) =>
-                    //     const VerifyMobileScreen(),
-                    //   ),
-                    // );
-                  },
-                  child: const Text(
-                    "Not Registered? Create Account",
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
