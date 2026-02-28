@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mahalaxmi_admin/features/widgetTree.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../core/theme/app_colors.dart';
 import '../widgets/hero.dart';
 
@@ -16,6 +17,8 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   bool isLoading = false;
+
+  final String baseUrl = "https://ecombackend-1-j6ov.onrender.com";
 
   @override
   void dispose() {
@@ -35,27 +38,44 @@ class _LoginMobileScreenState extends State<LoginMobileScreen> {
 
     setState(() => isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/admin/login"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "username": usernameController.text.trim(),
+          "password": passwordController.text.trim(),
+        }),
+      );
 
-    setState(() => isLoading = false);
+      setState(() => isLoading = false);
 
-    if (usernameController.text.trim() == "MLX_Admin" &&
-        passwordController.text.trim() == "130769") {
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const WidgetTree(
-            title: "Mahalaxmi Coolers",
-            mobileNumber: "Admin",
+      if (response.statusCode == 200) {
+        // LOGIN SUCCESS
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const WidgetTree(
+              title: "Mahalaxmi Coolers",
+              mobileNumber: "Admin",
+            ),
           ),
-        ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("YOU ARE NOT AN ADMIN", textAlign: TextAlign.center,)),
+        );
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Server Error")),
       );
 
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid Username or Password")),
-      );
+      print("Login Error: $e");
     }
   }
 
